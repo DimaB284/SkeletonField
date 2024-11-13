@@ -8,8 +8,11 @@ public class CaptureZone : MonoBehaviour
     public enum Team { Neutral, Player, Enemy }
     
     public Team currentOwner = Team.Neutral;  // Поточний власник зони
-    public float captureTime = 10.0f;         // Час, необхідний для захоплення
-    public Image captureProgressBar;          // UI-індикатор захоплення
+    public float captureTime = 5.0f;         // Час, необхідний для захоплення
+    public Slider captureProgressBar;          // UI-індикатор захоплення
+    public Text captureMessageText;
+    public string pointName;
+    public GameObject playerFlag, enemyFlag;
 
     private float captureProgress = 0.0f;     // Поточний прогрес захоплення
     private List<Transform> playersInZone = new List<Transform>();  // Гравці в зоні
@@ -29,10 +32,13 @@ public class CaptureZone : MonoBehaviour
             if (currentOwner != Team.Player)
             {
                 captureProgress += Time.deltaTime / captureTime;
-                if (captureProgress >= 1.0f)
+                if (captureProgressBar.value >= 100.0f)
                 {
                     currentOwner = Team.Player;
                     captureProgress = 1.0f; // Захоплено гравцем
+                    enemyFlag.gameObject.SetActive(false);
+                    playerFlag.gameObject.SetActive(true);
+                    ShowCaptureMessage("Your team captured " + pointName + " point!");
                 }
             }
         }
@@ -42,21 +48,40 @@ public class CaptureZone : MonoBehaviour
             if (currentOwner != Team.Enemy)
             {
                 captureProgress -= Time.deltaTime / captureTime;
-                if (captureProgress <= 0.0f)
+                if (captureProgressBar.value <= 0.0f)
                 {
                     currentOwner = Team.Enemy;
                     captureProgress = 0.0f; // Захоплено ворогом
+                    playerFlag.gameObject.SetActive(false);
+                    enemyFlag.gameObject.SetActive(true);
+                    ShowCaptureMessage("Skeletons' team captured " + pointName + " point!");
                 }
             }
         }
     }
 
-    void UpdateUI()
+    public void UpdateUI()
     {
         if (captureProgressBar != null)
         {
-            captureProgressBar.fillAmount = captureProgress;
+            captureProgressBar.value += captureProgress;
         }
+    }
+
+    void ShowCaptureMessage(string message)
+    {
+        if (captureMessageText != null)
+        {
+            captureMessageText.text = message;
+            captureMessageText.gameObject.SetActive(true);
+            StartCoroutine(HideMessageAfterDelay(3f)); // Приховати повідомлення через 3 секунди
+        }
+    }
+
+    IEnumerator HideMessageAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        captureMessageText.gameObject.SetActive(false);
     }
 
     // Перевірка входу гравців/ворогів у зону захоплення
@@ -65,6 +90,7 @@ public class CaptureZone : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playersInZone.Add(other.transform);
+            captureProgressBar.gameObject.SetActive(true);
         }
         else if (other.CompareTag("Enemy"))
         {
@@ -78,6 +104,7 @@ public class CaptureZone : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playersInZone.Remove(other.transform);
+            captureProgressBar.gameObject.SetActive(false);
         }
         else if (other.CompareTag("Enemy"))
         {
