@@ -8,7 +8,6 @@ public class Target : MonoBehaviour
     [SerializeField] float health;
     [SerializeField] bool isBarrel;
     [SerializeField] GameObject explosionEffect;
-    [SerializeField] bool hasExploded = false;
     [SerializeField] float radius = 20f;
     [SerializeField] float force = 300f;
 
@@ -17,7 +16,7 @@ public class Target : MonoBehaviour
         health -= amount;
         if (health <= 0)
         {
-            if (isBarrel && !hasExploded)
+            if (isBarrel)
             {
                 Instantiate(explosionEffect, transform.position, transform.rotation);
                 Collider[] colliders = Physics.OverlapSphere(transform.position, radius);
@@ -29,7 +28,6 @@ public class Target : MonoBehaviour
                           rb.AddExplosionForce(force, transform.position, radius);
                      }
                 }
-                hasExploded = true;
                 Die();
             }
             else

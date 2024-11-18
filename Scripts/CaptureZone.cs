@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class CaptureZone : MonoBehaviour
 {
     public enum Team { Neutral, Player, Enemy }
-    
+
     public Team currentOwner = Team.Neutral;  // Поточний власник зони
     public float captureTime = 5.0f;         // Час, необхідний для захоплення
     public Slider captureProgressBar;          // UI-індикатор захоплення
@@ -18,7 +18,7 @@ public class CaptureZone : MonoBehaviour
     private List<Transform> playersInZone = new List<Transform>();  // Гравці в зоні
     private List<Transform> enemiesInZone = new List<Transform>();  // Вороги в зоні
 
-    void Update()
+	void Update()
     {
         UpdateCaptureState();
         UpdateUI();
@@ -74,6 +74,14 @@ public class CaptureZone : MonoBehaviour
         {
             captureMessageText.text = message;
             captureMessageText.gameObject.SetActive(true);
+            if (currentOwner == Team.Player)
+			{
+                captureMessageText.color = Color.blue;
+            }
+            else if (currentOwner == Team.Enemy)
+            {
+                captureMessageText.color = Color.red;
+            }
             StartCoroutine(HideMessageAfterDelay(3f)); // Приховати повідомлення через 3 секунди
         }
     }
@@ -109,6 +117,20 @@ public class CaptureZone : MonoBehaviour
         else if (other.CompareTag("Enemy"))
         {
             enemiesInZone.Remove(other.transform);
+        }
+    }
+
+    public void OnEntityDestroyed(Transform entity, string tag)
+    {
+        // Видалення юнітів із списку при їхньому знищенні
+        if (tag == "Player" && playersInZone.Contains(entity))
+        {
+            playersInZone.Remove(entity);
+        }
+        else if (tag == "Enemy" && enemiesInZone.Contains(entity))
+        {
+            enemiesInZone.Remove(entity);
+            Debug.Log("Enemy removed from zone.");
         }
     }
 }
