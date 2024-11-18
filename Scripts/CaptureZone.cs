@@ -21,10 +21,10 @@ public class CaptureZone : MonoBehaviour
     private List<Transform> playersInZone = new List<Transform>(); // Гравці в зоні
     private List<Transform> enemiesInZone = new List<Transform>(); // Вороги в зоні
 
-	void Start()
+    void Start()
+    {
+	if (currentOwner == Team.Player)
 	{
-		if (currentOwner == Team.Player)
-		{
             playerCaptureProgressBar.maxValue = 100;
             playerProgress = 1.0f;
             playerFlag.SetActive(true);
@@ -37,7 +37,7 @@ public class CaptureZone : MonoBehaviour
             enemyFlag.SetActive(true);
         }
     }
-	void Update()
+   void Update()
     {
         UpdateCaptureState();
         UpdateUI();
