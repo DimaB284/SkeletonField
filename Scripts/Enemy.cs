@@ -1,122 +1,107 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
-using Random = UnityEngine.Random;
 
 public class Enemy : MonoBehaviour
 {
-    public NavMeshAgent agent;
-    public Transform player;
-    public LayerMask whatIsGround, whatIsPlayer;
-    public Vector3 walkPoint;
-    public GameObject projectile;
-    bool isWalkPointSet;
-    [SerializeField] float walkPointRange;
+    NavMeshAgent agent;
+    Animator animator;
 
-    [SerializeField] float timeBtwAttacks;
-    bool isAlreadyAttacked;
-    [SerializeField] float sightRange, attackRange;
-    public bool isPlayerInSightRange, isPlayerInAttackRange;
-    void Awake() 
+    void Start()
     {
-        player = GameObject.Find("Player").transform;
         agent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
     }
 
-    // Update is called once per frame
+	void Update()
+	{
+        if (agent.hasPath)
+		{
+            animator.SetFloat("Speed", agent.velocity.magnitude);
+        }
+		else
+		{
+            animator.SetFloat("Speed", 0);
+		}
+      
+	}
+
+	/*public Transform player;                // Посилання на гравця
+    public GameObject bulletPrefab;         // Префаб кулі
+    public Transform firePoint;             // Точка, з якої ворог стріляє
+    public float detectionRange = 15.0f;    // Дистанція, з якої ворог починає переслідування
+    public float shootingRange = 10.0f;     // Дистанція, з якої ворог починає стріляти
+    public float fireRate = 1.0f;           // Частота стрільби (кулі в секунду)
+    public float moveSpeed = 3.5f;          // Швидкість пересування ворога
+    public float runSpeed = 6.0f;           // Швидкість бігу ворога
+    public float bulletSpeed = 20.0f;       // Швидкість польоту кулі
+    public float attackCooldown = 1.5f;     // Час між атаками
+
+    private NavMeshAgent agent;             // Компонент NavMeshAgent для навігації
+    private float lastShotTime = 0f;        // Час останньої стрільби
+    private bool isRunning = false;         // Чи ворог біжить
+
+    void Start()
+    {
+        agent = GetComponent<NavMeshAgent>();
+        agent.speed = moveSpeed;            // Встановити стандартну швидкість пересування
+    }
+
     void Update()
     {
-        isPlayerInSightRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer);
-        isPlayerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-       /* if (!isPlayerInSightRange && !isPlayerInAttackRange)
+        if (distanceToPlayer <= detectionRange)
         {
-            Patrolling();
+            if (distanceToPlayer <= shootingRange)
+            {
+                // Зупинитися і стріляти
+                agent.isStopped = true;
+                //agent.SetDestination(player.position);
+                transform.LookAt(player);
+                if (Time.time > lastShotTime + 1f / fireRate)
+                {
+                    Shoot();
+                    lastShotTime = Time.time;
+                }
+            }
+            else
+            {
+                // Переслідувати гравця
+                agent.isStopped = false;
+                agent.SetDestination(player.position);
+
+                // Перевірка, чи варто бігти
+                if (!isRunning && distanceToPlayer > shootingRange)
+                {
+                    agent.speed = runSpeed;
+                    isRunning = true;
+                }
+                else if (isRunning && distanceToPlayer <= shootingRange)
+                {
+                    agent.speed = moveSpeed;
+                    isRunning = false;
+                }
+            }
         }
-
-        if (isPlayerInSightRange && !isPlayerInAttackRange)
+        else
         {
-            ChasePlayer();
+            // Ворог зупиняється, якщо гравець поза зоною виявлення
+            agent.isStopped = true;
         }
+    }
 
-        if (isPlayerInSightRange && isPlayerInAttackRange)
-        {
-            AttackPlayer();
-        }*/
-
-        ChasePlayer();
-        AttackPlayer();
-
+    void Shoot()
+    {
+        // Створити кулю
+        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
         
-    }
+        // Додати швидкість кулі
+        Rigidbody rb = bullet.GetComponent<Rigidbody>();
+        rb.velocity = firePoint.forward * bulletSpeed;
 
-    void SearchWalkPoint()
-    {
-        float randomZ = Random.Range(-walkPointRange, walkPointRange);
-        float randomX = Random.Range(-walkPointRange, walkPointRange);
-
-        walkPoint = new Vector3(transform.position.x + randomX, transform.position.y, transform.position.z + randomZ);
-
-        if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
-        {
-            isWalkPointSet = true;
-        }
-
-    }
-
-    void Patrolling()
-    {
-        if (!isWalkPointSet)
-        {
-            SearchWalkPoint();
-        }
-
-        if (isWalkPointSet)
-        {
-            agent.SetDestination(walkPoint);
-        }
-
-        Vector3 distanceToWalkPoint = transform.position - walkPoint;
-
-        if (distanceToWalkPoint.magnitude < 1f)
-        {
-            isWalkPointSet = false;
-        }
-
-    }
-
-    void ChasePlayer()
-    {
-        agent.SetDestination(player.position);
-    }
-
-    void AttackPlayer()
-    {
-        agent.SetDestination(transform.position);
-        transform.LookAt(player);
-        if (!isAlreadyAttacked)
-        {
-            Rigidbody rb = Instantiate(projectile, transform.position, Quaternion.identity).GetComponent<Rigidbody>();
-            rb.AddForce(transform.forward * 32f, ForceMode.Impulse);
-            rb.AddForce(transform.up * 8f, ForceMode.Impulse);
-            isAlreadyAttacked = true;
-            Invoke(nameof(ResetAttack), timeBtwAttacks);
-        }
-    }
-
-    void ResetAttack()
-    {
-        isAlreadyAttacked = false;
-    }
-
-    private void OnDrawGizmosSelected() 
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, sightRange);
-    }
-
+        // Тут можна додати додаткову логіку для стрільби (звук, анімації і т.д.)
+        Debug.Log("Enemy shoots!");
+    }*/
 }

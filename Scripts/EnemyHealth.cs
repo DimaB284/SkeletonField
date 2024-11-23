@@ -4,20 +4,36 @@ using UnityEngine;
 
 public class EnemyHealth : MonoBehaviour
 {
-    public float health = 10f;
+    public float maxHealth = 30f;
+    [HideInInspector] public float currentHealth;
+    AIAgent agent;
 
-    public void TakeDamage(float damage)
+	void Start()
+	{
+        currentHealth = maxHealth;
+        agent = GetComponent<AIAgent>();
+        var rigidBodies = GetComponentsInChildren<Rigidbody>();
+        foreach (var rigidBody in rigidBodies)
+		{
+            HitBox hitBox = rigidBody.gameObject.AddComponent<HitBox>();
+            hitBox.enemyHealth = this;
+		}
+	}
+	public void TakeDamage(float damage, Vector3 direction)
     {
-        health -= damage;
+        currentHealth -= damage;
 
-        if (health <= 0f)
+        if (currentHealth <= 0f)
         {
-            Die();
+            Die(direction);
         }
     }
 
-    void Die()
+    void Die(Vector3 direction)
     {
+        AIDestroyState destroyState = agent.stateMachine.GetState(AiStateId.Destroy) as AIDestroyState;
+        destroyState.direction = direction;
+        agent.stateMachine.ChangeState(AiStateId.Destroy);
         // Знайти CaptureZone, в якій знаходився ворог
         CaptureZone captureZone = FindCaptureZone();
 
@@ -26,9 +42,8 @@ public class EnemyHealth : MonoBehaviour
             // Викликати метод для оновлення списків
             captureZone.OnEntityDestroyed(transform, "Enemy");
         }
-
         // Знищити ворога
-        Destroy(gameObject);
+       // Destroy(gameObject);
     }
 
     CaptureZone FindCaptureZone()
