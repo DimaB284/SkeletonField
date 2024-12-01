@@ -15,8 +15,9 @@ public class RaycastWeapon : MonoBehaviour
     public float damage = 10f;
     public float bulletSpeed = 1000.0f;
     public float bulletDrop = 0.0f;
+    public AnimationClip weaponClip;
     public ParticleSystem[] muzzleFlash;
-    public ParticleSystem hitEffect;
+    //public ParticleSystem hitEffect;
     public Transform raycastOrigin;
     public Transform raycastDestination;
 
@@ -94,11 +95,17 @@ public class RaycastWeapon : MonoBehaviour
         if (Physics.Raycast(ray, out hitInfo, distance))
         {
            //Debug.DrawLine(ray.origin, hitInfo.point, Color.red, 1.0f);
-           hitEffect.transform.position = hitInfo.point;
-           hitEffect.transform.forward = hitInfo.normal;
-           hitEffect.Emit(1);
+           //hitEffect.transform.position = hitInfo.point;
+           //hitEffect.transform.forward = hitInfo.normal;
+           //hitEffect.Emit(1);
 
             bullet.time = maxBulletLifeTime;
+
+            /*var hitBox = hitInfo.collider.GetComponent<HitBox>();
+            if (hitBox)
+            {
+                hitBox.OnRaycastHit(this);
+            }*/
         }
     }
     private void FireBullet()
