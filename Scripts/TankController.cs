@@ -4,105 +4,78 @@ using UnityEngine;
 
 public class TankController : MonoBehaviour
 {
-    [Header("Tank Settings")]
-    [SerializeField] Transform tankTower;
-    [SerializeField] float towerRotateSpeed;
-    [SerializeField] float steerSpeed;
-    [SerializeField] float moveSpeed;
-    // Start is called before the first frame update
+    [Header("Movement Settings")]
+    public float moveSpeed = 5f; // РЁРІРёРґРєС–СЃС‚СЊ СЂСѓС…Сѓ С‚Р°РЅРєР°
+    public float turnSpeed = 60f; // РЁРІРёРґРєС–СЃС‚СЊ РїРѕРІРѕСЂРѕС‚Сѓ РєРѕСЂРїСѓСЃСѓ
+
+    [Header("Turret Settings")]
+    public Transform turret; // Р‘Р°С€С‚Р° С‚Р°РЅРєР°
+    public float turretTurnSpeed = 100f; // РЁРІРёРґРєС–СЃС‚СЊ РїРѕРІРѕСЂРѕС‚Сѓ Р±Р°С€С‚Рё
 
     [Header("Shooting Settings")]
-    [SerializeField] Transform cannon; // Позиція гармати для стрільби
-    [SerializeField] GameObject projectilePrefab; // Снаряд
-    [SerializeField] float fireForce = 500f; // Сила пострілу
-    [SerializeField] float fireCooldown = 1f; // Час між пострілами
-    private float fireCooldownTimer = 0f;
+    public Transform firePoint; // РўРѕС‡РєР° СЃС‚СЂС–Р»СЊР±Рё
+    public GameObject projectilePrefab; // РџСЂРµС„Р°Р± СЃРЅР°СЂСЏРґР°
+    public float fireForce = 20f; // РЎРёР»Р° РІРёСЃС‚СЂС–Р»Сѓ
+    public float fireCooldown = 1f; // Р—Р°С‚СЂРёРјРєР° РјС–Р¶ РїРѕСЃС‚СЂС–Р»Р°РјРё
+    private bool canFire = true;
 
-    [Header("Tracks Animation")]
-    [SerializeField] Transform leftTrack; // Ліва гусениця
-    [SerializeField] Transform rightTrack; // Права гусениця
-    [SerializeField] float trackSpeedMultiplier = 10f; // Швидкість 
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
     void Update()
     {
+        HandleMovement();
+        HandleTurretRotation();
         HandleShooting();
-        if (fireCooldownTimer > 0)
-        {
-            fireCooldownTimer -= Time.deltaTime;
-        }
-
     }
 
-    private void FixedUpdate()
-	{
-        RotateTower();
-        MoveInput();
-        //AnimateTracks();
-    }
-
-    void RotateTower()
-	{
-        if (Input.GetKey(KeyCode.Q))
-        {
-            tankTower.Rotate(0f, -towerRotateSpeed, 0f);
-        }
-        if (Input.GetKey(KeyCode.E))
-        {
-            tankTower.Rotate(0f, towerRotateSpeed, 0f);
-        }
-    }
-
-    void MoveInput()
-	{
-        float steerAmount = Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime;
-        float moveAmount = Input.GetAxis("Vertical") * moveSpeed * Time.deltaTime;
-        transform.Rotate(0, steerAmount, 0);
-        transform.Translate(0, 0, moveAmount);
-    }
-    void AnimateTracks()
+    // РЈРїСЂР°РІР»С–РЅРЅСЏ СЂСѓС…РѕРј РєРѕСЂРїСѓСЃСѓ
+    private void HandleMovement()
     {
-        // Обертання гусениць залежно від швидкості руху
-        float moveAmount = Input.GetAxis("Vertical") * moveSpeed * Time.deltaTime * trackSpeedMultiplier;
-        float steerAmount = Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime * trackSpeedMultiplier;
+        float moveInput = Input.GetAxis("Vertical"); // Р’РїРµСЂРµРґ/РЅР°Р·Р°Рґ
+        float turnInput = Input.GetAxis("Horizontal"); // РџРѕРІРѕСЂРѕС‚ РєРѕСЂРїСѓСЃСѓ
 
-        if (leftTrack != null)
-        {
-            leftTrack.Rotate(moveAmount + steerAmount, 0, 0);
-        }
+        // Р СѓС… РІРїРµСЂРµРґ/РЅР°Р·Р°Рґ
+        transform.Translate(Vector3.forward * moveInput * moveSpeed * Time.deltaTime);
 
-        if (rightTrack != null)
-        {
-            rightTrack.Rotate(moveAmount - steerAmount, 0, 0);
-        }
+        // РџРѕРІРѕСЂРѕС‚ РєРѕСЂРїСѓСЃСѓ
+        transform.Rotate(Vector3.up * turnInput * turnSpeed * Time.deltaTime);
     }
-    void HandleShooting()
+
+    // РЈРїСЂР°РІР»С–РЅРЅСЏ РїРѕРІРѕСЂРѕС‚РѕРј Р±Р°С€С‚Рё
+    private void HandleTurretRotation()
     {
-        // Перевірка, чи натиснуто клавішу стрільби і чи готовий танк стріляти
-        if (Input.GetKeyDown(KeyCode.Space) && fireCooldownTimer <= 0)
+        if (turret == null) return;
+
+        // РџРѕРІРѕСЂРѕС‚ Р±Р°С€С‚Рё Р·Р° РЅР°РїСЂСЏРјРєРѕРј РјРёС€С–
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hit))
         {
-            Shoot();
-            fireCooldownTimer = fireCooldown;
+            Vector3 targetPoint = hit.point;
+            Vector3 direction = (targetPoint - turret.position).normalized;
+            Quaternion lookRotation = Quaternion.LookRotation(direction);
+            turret.rotation = Quaternion.RotateTowards(turret.rotation, lookRotation, turretTurnSpeed * Time.deltaTime);
         }
     }
 
-    void Shoot()
+    // РЈРїСЂР°РІР»С–РЅРЅСЏ СЃС‚СЂС–Р»СЊР±РѕСЋ
+    private void HandleShooting()
     {
-        // Створення снаряда
-        if (cannon != null && projectilePrefab != null)
+        if (Input.GetMouseButtonDown(0) && canFire) // Р›С–РІР° РєРЅРѕРїРєР° РјРёС€С–
         {
-            GameObject projectile = Instantiate(projectilePrefab, cannon.position, cannon.rotation);
-            Rigidbody rb = projectile.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                rb.AddForce(cannon.forward * fireForce, ForceMode.Impulse);
-            }
+            StartCoroutine(FireProjectile());
         }
     }
 
+    // Р’РёСЃС‚СЂС–Р» СЃРЅР°СЂСЏРґРѕРј
+    private IEnumerator FireProjectile()
+    {
+        canFire = false;
 
+        // РЎС‚РІРѕСЂРµРЅРЅСЏ СЃРЅР°СЂСЏРґР°
+        GameObject projectile = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
+        Rigidbody rb = projectile.GetComponent<Rigidbody>();
+        rb.AddForce(firePoint.forward * fireForce, ForceMode.Impulse);
+
+        yield return new WaitForSeconds(fireCooldown);
+
+        canFire = true;
+    }
 }
