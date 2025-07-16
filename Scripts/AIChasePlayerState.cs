@@ -22,6 +22,8 @@ public class AIChasePlayerState : AIState
 
 	public void Update(AIAgent agent)
 	{
+		Vector3 directionToPlayer = agent.player.position - agent.transform.position;
+		float distanceToPlayer = directionToPlayer.magnitude;
 		if (!agent.enabled)
 		{
 			return;
@@ -45,5 +47,27 @@ public class AIChasePlayerState : AIState
 			}
 			timer = agent.aIAgentConfig.maxTime;
 		}
+		if (CanSeePlayer(agent))
+		{
+			agent.stateMachine.ChangeState(AiStateId.Shooting);
+		}
+	}
+
+	// Додаю функцію CanSeePlayer
+	private bool CanSeePlayer(AIAgent agent)
+	{
+		if (agent.player == null) return false;
+		Vector3 dirToPlayer = agent.player.position - agent.transform.position;
+		float dist = dirToPlayer.magnitude;
+		if (dist > agent.aIAgentConfig.maxSightDistance) return false;
+		dirToPlayer.Normalize();
+		// Прибираю перевірку dot для 360° огляду
+		RaycastHit hit;
+		if (Physics.Raycast(agent.transform.position + Vector3.up, dirToPlayer, out hit, agent.aIAgentConfig.maxSightDistance))
+		{
+			if (hit.transform == agent.player)
+				return true;
+		}
+		return false;
 	}
 }

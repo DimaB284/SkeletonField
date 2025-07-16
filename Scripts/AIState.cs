@@ -6,7 +6,12 @@ public enum AiStateId
 {
     ChasePlayer, 
     Destroy,
-    Idle
+    Idle,
+    AttackPlayer,
+    Shooting,
+    Patrol,      // новий стан
+    Capture,     // новий стан
+    ZoneControl  // стан перебування у зоні
 }
 public interface AIState
 {
@@ -15,3 +20,5 @@ public interface AIState
     void Update(AIAgent agent);
     void Exit(AIAgent agent);
 }
+
+// Видалено класи AIPatrolState і AICaptureState, вони будуть у окремих файлах

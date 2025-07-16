@@ -21,17 +21,26 @@ public class AIIdleState : AIState
 
 	public void Update(AIAgent agent)
 	{
-		Vector3 playerDirection = agent.player.position - agent.transform.position;
-		if (playerDirection.magnitude > agent.aIAgentConfig.maxSightDistance)
+		if (CanSeePlayer(agent))
 		{
-			return;
+			agent.stateMachine.ChangeState(AiStateId.Shooting);
 		}
-		Vector3 agentDirection = agent.transform.forward;
-		playerDirection.Normalize();
-		float dotProduct = Vector3.Dot(playerDirection, agentDirection);
-		if (dotProduct > 0.0f)
+	}
+
+	private bool CanSeePlayer(AIAgent agent)
+	{
+		if (agent.player == null) return false;
+		Vector3 dirToPlayer = agent.player.position - agent.transform.position;
+		float dist = dirToPlayer.magnitude;
+		if (dist > agent.aIAgentConfig.maxSightDistance) return false;
+		dirToPlayer.Normalize();
+		// Прибираю перевірку dot для 360° огляду
+		RaycastHit hit;
+		if (Physics.Raycast(agent.transform.position + Vector3.up, dirToPlayer, out hit, agent.aIAgentConfig.maxSightDistance))
 		{
-			agent.stateMachine.ChangeState(AiStateId.ChasePlayer);
+			if (hit.transform == agent.player)
+				return true;
 		}
+		return false;
 	}
 }

@@ -14,12 +14,14 @@ public class CaptureZone : MonoBehaviour
     public Text captureMessageText;
     public string pointName;
     public GameObject playerFlag, enemyFlag;
+    private int playerFlags = 0;
+    private int enemyFlags = 0;
 
     private float playerProgress = 0.0f; // Прогрес гравця
     private float enemyProgress = 0.0f; // Прогрес ворога
     private bool isNeutralizingByPlayer = false, isNeutralizingByEnemy = false; // Чи йде нейтралізація
-    private List<Transform> playersInZone = new List<Transform>(); // Гравці в зоні
-    private List<Transform> enemiesInZone = new List<Transform>(); // Вороги в зоні
+    public List<Transform> playersInZone = new List<Transform>(); // Гравці в зоні
+    public List<Transform> enemiesInZone = new List<Transform>(); // Вороги в зоні
 
 	void Start()
 	{
@@ -74,18 +76,18 @@ public class CaptureZone : MonoBehaviour
                 if (playerProgress >= 1.0f)
                 {
                     currentOwner = Team.Player;
+                    SetOwner(Team.Player);
                     playerFlag.SetActive(true);
-                    ShowCaptureMessage("Your team captured " + pointName + " point!");
+                    // Перевіряємо, чи це остання точка
+                    if (!IsLastZone(CaptureZone.Team.Player))
+                        ShowCaptureMessage("Your team captured " + pointName + " point!");
+                    GameController.Instance.CheckVictoryCondition();
                 }
             }
             if (currentOwner == Team.Player && playerProgress > 0 && playerProgress < 1)
 			{
                 playerProgress += Time.deltaTime / captureTime;
             }
-            /*if (currentOwner == Team.Enemy && enemyProgress > 0 && enemyProgress < 1)
-            {
-                enemyProgress += Time.deltaTime / captureTime;
-            }*/
         }
         else if (enemiesInZone.Count > 0 && playersInZone.Count == 0)
         {
@@ -113,11 +115,31 @@ public class CaptureZone : MonoBehaviour
                 if (enemyProgress >= 1.0f)
                 {
                     currentOwner = Team.Enemy;
+                    SetOwner(Team.Enemy);
                     enemyFlag.SetActive(true);
-                    ShowCaptureMessage("Skeletons' team captured " + pointName + " point!");
+                    // Перевіряємо, чи це остання точка
+                    if (!IsLastZone(CaptureZone.Team.Enemy))
+                        ShowCaptureMessage("Skeletons' team captured " + pointName + " point!");
+                    GameController.Instance.CheckVictoryCondition();
                 }
             }
+			/*if (currentOwner == Team.Enemy && enemyProgress > 0 && enemyProgress < 1)
+			{
+				enemyProgress += Time.deltaTime / captureTime;
+			}*/
+		}
+    }
+
+    // Додаю допоміжний метод для перевірки, чи це остання точка
+    private bool IsLastZone(Team team)
+    {
+        var zones = GameObject.FindObjectsOfType<CaptureZone>();
+        foreach (var zone in zones)
+        {
+            if (zone != this && zone.currentOwner != team)
+                return false;
         }
+        return true;
     }
 
     public void UpdateUI()
@@ -175,11 +197,11 @@ public class CaptureZone : MonoBehaviour
         {
             captureMessageText.text = message;
             captureMessageText.gameObject.SetActive(true);
-            if (currentOwner == Team.Player || isNeutralizingByPlayer)
+            if (isNeutralizingByPlayer || currentOwner == Team.Player)
 			{
                 captureMessageText.color = Color.blue;
             }
-            else if (currentOwner == Team.Enemy || isNeutralizingByEnemy)
+            else if (isNeutralizingByEnemy || currentOwner == Team.Enemy)
 			{
                 captureMessageText.color = Color.red;
             }
@@ -187,7 +209,7 @@ public class CaptureZone : MonoBehaviour
         }
     }
 
-    IEnumerator HideMessageAfterDelay(float delay)
+    public IEnumerator HideMessageAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
         captureMessageText.gameObject.SetActive(false);
@@ -206,6 +228,13 @@ public class CaptureZone : MonoBehaviour
         else if (other.CompareTag("Enemy"))
         {
             enemiesInZone.Add(other.transform);
+            Debug.Log($"[CaptureZone] Enemy {other.name} увійшов у зону {pointName}, enemiesInZone.Count: {enemiesInZone.Count}");
+            // Перевести ворога у стан ZoneControl
+            var agent = other.GetComponent<AIAgent>();
+            if (agent != null)
+            {
+                agent.stateMachine.ChangeState(AiStateId.ZoneControl);
+            }
         }
     }
 
@@ -226,6 +255,30 @@ public class CaptureZone : MonoBehaviour
         else if (other.CompareTag("Enemy"))
         {
             enemiesInZone.Remove(other.transform);
+            Debug.Log($"[CaptureZone] Enemy {other.name} вийшов із зони {pointName}");
+            // Перевести ворога у стан Patrol
+            var agent = other.GetComponent<AIAgent>();
+            if (agent != null)
+            {
+                agent.stateMachine.ChangeState(AiStateId.Patrol);
+            }
+			if (currentOwner != Team.Enemy)
+			{
+				enemyProgress = 0.0f;
+				/*if (currentOwner == Team.Player)
+				{
+					playerProgress = 1.0f;
+				}*/
+			}
+		}
+    }
+
+    public void SetOwner(Team newOwner)
+    {
+        if (currentOwner != newOwner)
+        {
+            currentOwner = newOwner;
+            GameController.Instance.CheckVictoryCondition();
         }
     }
 
@@ -234,10 +287,22 @@ public class CaptureZone : MonoBehaviour
         if (tag == "Player" && playersInZone.Contains(entity))
         {
             playersInZone.Remove(entity);
-        }
+			if (currentOwner != Team.Player)
+			{
+				playerProgress = 0.0f;
+				if (currentOwner == Team.Enemy)
+				{
+					enemyProgress = 1.0f;
+				}
+			}
+		}
         else if (tag == "Enemy" && enemiesInZone.Contains(entity))
         {
             enemiesInZone.Remove(entity);
-        }
+			if (currentOwner != Team.Enemy)
+			{
+				enemyProgress = 0.0f;
+			}
+		}
     }
 }
