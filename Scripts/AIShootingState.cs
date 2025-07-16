@@ -19,19 +19,21 @@ public class AIShootingState : AIState
 
 	public void Update(AIAgent agent)
 	{
-		if (agent.player != null && agent.firePoint != null && agent.bulletPrefab != null)
+		Debug.Log($"[AI] {agent.name}: AIShootingState.Update");
+		var target = agent.FindTarget();
+		if (target != null && agent.firePoint != null && agent.bulletPrefab != null && agent.IsTargetInFOV(target))
 		{
-			Vector3 directionToPlayer = agent.player.position - agent.firePoint.position;
-			float distanceToPlayer = directionToPlayer.magnitude;
+			Vector3 directionToTarget = target.position - agent.firePoint.position;
+			float distanceToTarget = directionToTarget.magnitude;
 
-			// Поворот лише firePoint (або weaponIK) у бік гравця
+			// Поворот лише firePoint (або weaponIK) у бік цілі
 			Vector3 rayOrigin = agent.firePoint.position;
-			Vector3 targetPos = agent.player.position + Vector3.up * 1.2f;
+			Vector3 targetPos = target.position + Vector3.up * 0.9f;
 			Vector3 rayDir = (targetPos - rayOrigin).normalized;
 
 			float minSpread = 1f;
 			float maxSpread = 10f;
-			float spread = Mathf.Lerp(minSpread, maxSpread, distanceToPlayer / agent.aIAgentConfig.maxSightDistance);
+			float spread = Mathf.Lerp(minSpread, maxSpread, distanceToTarget / agent.aIAgentConfig.maxSightDistance);
 			Quaternion randomSpread = Quaternion.Euler(Random.Range(-spread, spread), Random.Range(-spread, spread), 0);
 
 			if (agent.weaponIK != null)
@@ -39,7 +41,7 @@ public class AIShootingState : AIState
 				var method = agent.weaponIK.GetType().GetMethod("SetLookTarget");
 				if (method != null)
 				{
-					method.Invoke(agent.weaponIK, new object[] { agent.player.position });
+					method.Invoke(agent.weaponIK, new object[] { target.position });
 				}
 			}
 			else
@@ -51,7 +53,7 @@ public class AIShootingState : AIState
 			bool canSee = false;
 			if (Physics.Raycast(rayOrigin, rayDir, out hit, agent.aIAgentConfig.maxSightDistance))
 			{
-				if (hit.transform == agent.player)
+				if (hit.transform == target)
 					canSee = true;
 			}
 			if (canSee && Time.time >= nextShootTime)
@@ -64,15 +66,16 @@ public class AIShootingState : AIState
 
 	private bool CanSeePlayer(AIAgent agent)
 	{
-		if (agent.player == null) return false;
-		Vector3 dirToPlayer = agent.player.position - agent.transform.position;
-		float dist = dirToPlayer.magnitude;
+		var target = agent.FindTarget();
+		if (target == null) return false;
+		Vector3 dirToTarget = target.position - agent.transform.position;
+		float dist = dirToTarget.magnitude;
 		if (dist > agent.aIAgentConfig.maxSightDistance) return false;
-		dirToPlayer.Normalize();
+		dirToTarget.Normalize();
 		RaycastHit hit;
-		if (Physics.Raycast(agent.transform.position + Vector3.up, dirToPlayer, out hit, agent.aIAgentConfig.maxSightDistance))
+		if (Physics.Raycast(agent.transform.position + Vector3.up, dirToTarget, out hit, agent.aIAgentConfig.maxSightDistance))
 		{
-			if (hit.transform == agent.player)
+			if (hit.transform == target)
 				return true;
 		}
 		return false;

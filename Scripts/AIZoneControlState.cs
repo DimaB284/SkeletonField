@@ -18,7 +18,6 @@ public class AIZoneControlState : AIState
     public void Enter(AIAgent agent)
     {
         agent.navMeshAgent.isStopped = false;
-        Debug.Log($"[AI] Enter ZoneControl for {agent.name}");
         currentZone = FindCurrentZone(agent);
         PickNewWanderTarget(agent);
         wanderTimer = wanderChangeTime;
@@ -26,10 +25,11 @@ public class AIZoneControlState : AIState
 
     private void ShootAtPlayerIfVisible(AIAgent agent)
     {
-        if (CanSeePlayer(agent) && agent.firePoint != null && agent.bulletPrefab != null)
+        Debug.Log($"[AI] {agent.name}: ShootAtPlayerIfVisible called (ZoneControlState)");
+        if (agent.player != null && agent.firePoint != null && agent.bulletPrefab != null && agent.IsTargetInFOV(agent.player))
         {
             Vector3 rayOrigin = agent.firePoint.position;
-            Vector3 targetPos = agent.player.position + Vector3.up * 1.2f;
+            Vector3 targetPos = agent.player.position + Vector3.up * 0.9f;
             Vector3 rayDir = (targetPos - rayOrigin).normalized;
 
             float distanceToPlayer = Vector3.Distance(agent.transform.position, agent.player.position);
@@ -57,6 +57,7 @@ public class AIZoneControlState : AIState
                 if (hit.transform == agent.player)
                     canSee = true;
             }
+            Debug.DrawRay(rayOrigin, rayDir * agent.aIAgentConfig.maxSightDistance, Color.red, 0.1f);
             if (canSee && Time.time >= nextShootTime)
             {
                 agent.Shoot();
@@ -67,6 +68,7 @@ public class AIZoneControlState : AIState
 
     public void Update(AIAgent agent)
     {
+        Debug.Log($"[AI] {agent.name}: AIZoneControlState.Update");
         ShootAtPlayerIfVisible(agent);
         // Якщо зона вже захоплена ворогами — виходимо у Patrol
         if (currentZone == null || currentZone.currentOwner == CaptureZone.Team.Enemy)

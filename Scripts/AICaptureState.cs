@@ -16,7 +16,6 @@ public class AICaptureState : AIState
     public void Enter(AIAgent agent)
     {
         agent.navMeshAgent.isStopped = false;
-        Debug.Log($"[AI] Enter Capture for {agent.name}");
         currentZone = FindClosestZone(agent);
         PickNewWanderTarget(agent);
         wanderTimer = wanderChangeTime;
@@ -24,11 +23,13 @@ public class AICaptureState : AIState
 
     public void Update(AIAgent agent)
     {
+        Debug.Log($"[AI] {agent.name}: AICaptureState.Update");
         // Якщо бачить гравця — стріляє, але не змінює стан
-        if (CanSeePlayer(agent) && agent.firePoint != null && agent.bulletPrefab != null)
+        if (agent.player != null && agent.firePoint != null && agent.bulletPrefab != null && agent.IsTargetInFOV(agent.player))
         {
+            Debug.Log($"[AI] {agent.name}: Shoot block entered (CaptureState)");
             Vector3 rayOrigin = agent.firePoint.position;
-            Vector3 targetPos = agent.player.position + Vector3.up * 1.2f;
+            Vector3 targetPos = agent.player.position + Vector3.up * 0.9f;
             Vector3 rayDir = (targetPos - rayOrigin).normalized;
 
             float distanceToPlayer = Vector3.Distance(agent.transform.position, agent.player.position);
@@ -96,7 +97,6 @@ public class AICaptureState : AIState
             wanderTimer = wanderChangeTime;
         }
         agent.navMeshAgent.SetDestination(zoneWanderTarget);
-        Debug.Log($"[AI] SetDestination (zoneWanderTarget): {zoneWanderTarget} for {agent.name}");
 
         var zones = GameObject.FindObjectsOfType<CaptureZone>();
         bool hasAvailableZone = false;

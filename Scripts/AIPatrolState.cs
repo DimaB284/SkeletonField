@@ -18,17 +18,17 @@ public class AIPatrolState : AIState
     public void Enter(AIAgent agent)
     {
         agent.navMeshAgent.isStopped = false;
-        Debug.Log($"[AI] Enter Patrol for {agent.name}");
         PickNewTarget(agent);
         changeTargetTimer = Random.Range(5f, 15f);
     }
 
     private void ShootAtPlayerIfVisible(AIAgent agent)
     {
-        if (CanSeePlayer(agent) && agent.firePoint != null && agent.bulletPrefab != null)
+        Debug.Log($"[AI] {agent.name}: ShootAtPlayerIfVisible called (PatrolState)");
+        if (agent.player != null && agent.firePoint != null && agent.bulletPrefab != null && agent.IsTargetInFOV(agent.player))
         {
             Vector3 rayOrigin = agent.firePoint.position;
-            Vector3 targetPos = agent.player.position + Vector3.up * 1.2f;
+            Vector3 targetPos = agent.player.position + Vector3.up * 0.9f;
             Vector3 rayDir = (targetPos - rayOrigin).normalized;
 
             float distanceToPlayer = Vector3.Distance(agent.transform.position, agent.player.position);
@@ -69,6 +69,7 @@ public class AIPatrolState : AIState
 
     public void Update(AIAgent agent)
     {
+        Debug.Log($"[AI] {agent.name}: AIPatrolState.Update");
         ShootAtPlayerIfVisible(agent);
 
         // Якщо цільова зона вже захоплена ворогами — вибираємо нову
@@ -88,7 +89,6 @@ public class AIPatrolState : AIState
         if (useRandomPoint)
         {
             agent.navMeshAgent.SetDestination(randomPoint);
-            Debug.Log($"[AI] SetDestination (randomPoint): {randomPoint} for {agent.name}");
             if (Vector3.Distance(agent.transform.position, randomPoint) < 2f)
             {
                 PickNewTarget(agent);
@@ -128,7 +128,6 @@ public class AIPatrolState : AIState
             }
             agent.navMeshAgent.stoppingDistance = 0f;
             agent.navMeshAgent.SetDestination(destination);
-            Debug.Log($"[AI] SetDestination (zone): {destination} for {agent.name}");
             // Не переходимо у Capture, чекаємо OnTriggerEnter
         }
 
@@ -184,7 +183,7 @@ public class AIPatrolState : AIState
         }
         if (targetZone != null)
         {
-            Debug.Log($"[AIPatrolState] {agent.name} вибрав зону: {targetZone.pointName}, owner: {targetZone.currentOwner}");
+            // Debug.Log($"[AIPatrolState] {agent.name} вибрав зону: {targetZone.pointName}, owner: {targetZone.currentOwner}");
         }
     }
 
